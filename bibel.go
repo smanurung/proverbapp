@@ -1,9 +1,9 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -70,12 +70,24 @@ func (b *Bibel) HandleProverbs(w http.ResponseWriter, r *http.Request) {
 
 	random = now%int64(len(chapter.Response.Verses)) + 1
 
-	var buff bytes.Buffer
-	buff.WriteString(fmt.Sprintf("<h1>%s</h1>", chapter.Response.Verses[random].Ref))
-	buff.WriteString(chapter.Response.Verses[random].Txt)
+	t, e := template.ParseFiles("index.html")
+	if e != nil {
+		log.Println(e)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
-	w.Header().Set("Content-Type", "text/html")
-	w.WriteHeader(http.StatusOK)
-	w.Write(buff.Bytes())
+	e = t.Execute(w, struct {
+		Ref string
+		Txt template.HTML
+	}{
+		Ref: chapter.Response.Verses[random].Ref,
+		Txt: template.HTML(chapter.Response.Verses[random].Txt),
+	})
+	if e != nil {
+		log.Println(e)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	return
 }
