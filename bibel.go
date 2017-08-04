@@ -1,9 +1,9 @@
-package main
+// avoid to using package main here (library-driven development principle)
+package bibel
 
 import (
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -31,7 +31,7 @@ type ChapterResponse struct {
 	} `json:"response"`
 }
 
-func (b *Bibel) HandleProverbs(w http.ResponseWriter, r *http.Request) {
+func (b *Bibel) HandleProverbs() {
 	now := time.Now().Unix()
 	random := now%ProverbsVerseTotal + 1
 
@@ -39,7 +39,6 @@ func (b *Bibel) HandleProverbs(w http.ResponseWriter, r *http.Request) {
 	verseRequest, e := http.NewRequest("GET", endpoint, nil)
 	if e != nil {
 		log.Println(e)
-		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	verseRequest.SetBasicAuth(Username, Password)
@@ -48,7 +47,6 @@ func (b *Bibel) HandleProverbs(w http.ResponseWriter, r *http.Request) {
 	resp, e := client.Do(verseRequest)
 	if e != nil {
 		log.Println(e)
-		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	defer resp.Body.Close()
@@ -56,7 +54,6 @@ func (b *Bibel) HandleProverbs(w http.ResponseWriter, r *http.Request) {
 	encoded, e := ioutil.ReadAll(resp.Body)
 	if e != nil {
 		log.Println(e)
-		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
@@ -64,30 +61,13 @@ func (b *Bibel) HandleProverbs(w http.ResponseWriter, r *http.Request) {
 	e = json.Unmarshal(encoded, &chapter)
 	if e != nil {
 		log.Println(e)
-		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	random = now%int64(len(chapter.Response.Verses)) + 1
 
-	t, e := template.ParseFiles("index.html")
-	if e != nil {
-		log.Println(e)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	e = t.Execute(w, struct {
-		Ref string
-		Txt template.HTML
-	}{
-		Ref: chapter.Response.Verses[random].Ref,
-		Txt: template.HTML(chapter.Response.Verses[random].Txt),
-	})
-	if e != nil {
-		log.Println(e)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+	fmt.Printf("%s\n", chapter.Response.Verses[random].Ref)
+	fmt.Printf("------\n")
+	fmt.Printf("%s\n", chapter.Response.Verses[random].Txt)
 	return
 }
